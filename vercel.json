@@ -2,6 +2,11 @@
   "version": 2,
   "routes": [
     {
+      "src": "/api/webhook",
+      "methods": ["POST", "OPTIONS"],
+      "dest": "/api/webhook.js"
+    },
+    {
       "src": "/api/presentation",
       "methods": ["POST", "OPTIONS"],
       "dest": "/api/presentation.js"
@@ -13,6 +18,10 @@
     }
   ],
   "functions": {
+    "api/webhook.js": {
+      "memory": 1024,
+      "maxDuration": 10
+    },
     "api/presentation.js": {
       "memory": 1024,
       "maxDuration": 10
