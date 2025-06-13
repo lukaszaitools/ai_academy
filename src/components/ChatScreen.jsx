@@ -51,11 +51,10 @@ export function ChatScreen({ businessIdea, onBack }) {
     setIsGenerating(true);
     try {
       console.log('Sending data:', userAnswers);
-      const response = await fetch('/api/presentation', {
+      const response = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
         },
         body: JSON.stringify({
           businessIdea: userAnswers.businessIdea,
@@ -69,77 +68,15 @@ export function ChatScreen({ businessIdea, onBack }) {
         throw new Error('Nie udało się wysłać danych do przetworzenia.');
       }
 
-      const responseData = await response.json();
-      const presentationId = responseData.presentationId;
+      const data = await response.json();
+      console.log('Response data:', data);
 
-      if (!presentationId) {
-        throw new Error('Nie otrzymano ID prezentacji.');
+      if (data.documentUrl) {
+        setDocumentUrl(data.documentUrl);
+        setShowSuccess(true);
+      } else {
+        throw new Error('Nie otrzymano URL do dokumentu.');
       }
-
-      // Start polling for status
-      let retries = 0;
-      const maxRetries = 60; // 5 minut (5s * 60)
-      const pollInterval = 5000; // 5 sekund
-
-      const pollStatus = async () => {
-        if (retries >= maxRetries) {
-          setIsGenerating(false);
-          setIsLoading(false);
-          setMessages(prev => [...prev, {
-            type: 'agent',
-            content: "Przekroczono limit czasu oczekiwania na prezentację. Spróbuj ponownie później."
-          }]);
-          return;
-        }
-
-        try {
-          const statusResponse = await fetch(`/api/presentation?id=${presentationId}`, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json'
-            }
-          });
-
-          if (!statusResponse.ok) {
-            throw new Error('Nie można sprawdzić statusu generowania prezentacji.');
-          }
-
-          const statusData = await statusResponse.json();
-          console.log('Status response:', statusData);
-
-          if (statusData.status === 'completed' && statusData.documentUrl) {
-            setDocumentUrl(statusData.documentUrl);
-            setShowSuccess(true);
-            setIsGenerating(false);
-            setIsLoading(false);
-            return;
-          }
-
-          if (statusData.status === 'error') {
-            throw new Error(statusData.error || 'Wystąpił błąd podczas generowania prezentacji.');
-          }
-
-          // Continue polling
-          retries++;
-          setTimeout(pollStatus, pollInterval);
-        } catch (error) {
-          console.error('Error polling status:', error);
-          if (retries < maxRetries) {
-            // If it's just a temporary error, continue polling
-            setTimeout(pollStatus, pollInterval);
-          } else {
-            setIsGenerating(false);
-            setIsLoading(false);
-            setMessages(prev => [...prev, {
-              type: 'agent',
-              content: error.message || "Wystąpił błąd podczas sprawdzania statusu prezentacji."
-            }]);
-          }
-        }
-      };
-
-      // Start polling after a short delay
-      setTimeout(pollStatus, 2000);
 
     } catch (error) {
       console.error('Error:', error);
@@ -147,6 +84,7 @@ export function ChatScreen({ businessIdea, onBack }) {
         type: 'agent',
         content: error.message || "Przepraszam, wystąpił błąd podczas przetwarzania danych. Spróbuj ponownie później."
       }]);
+    } finally {
       setIsGenerating(false);
       setIsLoading(false);
     }
