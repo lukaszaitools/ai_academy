@@ -97,7 +97,7 @@ export function ChatScreen({ businessIdea, onBack }) {
         }
 
         try {
-          const pollResponse = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274/status', {
+          const pollResponse = await fetch('/api/status', {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',

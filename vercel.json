@@ -5,10 +5,19 @@
       "src": "/api/presentation",
       "methods": ["POST", "OPTIONS"],
       "dest": "/api/presentation.js"
+    },
+    {
+      "src": "/api/status",
+      "methods": ["GET", "OPTIONS"],
+      "dest": "/api/status.js"
     }
   ],
   "functions": {
     "api/presentation.js": {
+      "memory": 1024,
+      "maxDuration": 10
+    },
+    "api/status.js": {
       "memory": 1024,
       "maxDuration": 10
     }
