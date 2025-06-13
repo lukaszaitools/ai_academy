@@ -69,14 +69,14 @@ export function ChatScreen({ businessIdea, onBack }) {
       }
 
       const data = await response.json();
-      console.log('Response data:', data);
+      console.log('Response from n8n:', data);
 
-      if (data.documentUrl) {
-        setDocumentUrl(data.documentUrl);
-        setShowSuccess(true);
-      } else {
-        throw new Error('Nie otrzymano URL do dokumentu.');
+      if (!data || !data.documentUrl) {
+        throw new Error('Nie otrzymano poprawnej odpowiedzi z URL dokumentu.');
       }
+
+      setDocumentUrl(data.documentUrl);
+      setShowSuccess(true);
 
     } catch (error) {
       console.error('Error:', error);
