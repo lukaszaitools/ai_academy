@@ -20,12 +20,28 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Validate request body
+    if (!req.body || typeof req.body !== 'object') {
+      return res.status(400).json({ error: 'Invalid request body' });
+    }
+
+    // Extract content from request body
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
+
+    // Forward to n8n webhook with proper formatting
     const response = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(req.body),
+      body: JSON.stringify({
+        content: content,
+        timestamp: new Date().toISOString()
+      }),
     });
 
     const data = await response.json();
