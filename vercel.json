@@ -1,24 +1,16 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
-    }
-  ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/dist/$1"
+      "src": "/api/presentation",
+      "methods": ["POST", "OPTIONS"],
+      "dest": "/api/presentation.js"
     }
-  ]
+  ],
+  "functions": {
+    "api/presentation.js": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  }
 } 
