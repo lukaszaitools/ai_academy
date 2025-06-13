@@ -52,8 +52,8 @@ export function ChatScreen({ businessIdea, onBack }) {
     try {
       // Sprawdzamy czy mamy wszystkie potrzebne dane
       console.log('Current userAnswers:', userAnswers);
-      if (!userAnswers || !userAnswers.businessIdea || !userAnswers.answers) {
-        throw new Error('Brak wymaganych danych do wysłania.');
+      if (!userAnswers || !userAnswers.businessIdea || !userAnswers.answers || userAnswers.answers.length < 3) {
+        throw new Error('Brak wszystkich wymaganych odpowiedzi. Potrzebujemy pomysłu na biznes i trzech odpowiedzi.');
       }
 
       const requestData = {
