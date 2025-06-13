@@ -28,33 +28,38 @@ export function ChatScreen({ businessIdea, onBack }) {
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    if (messages.length > 0 && messages[messages.length - 1].type === 'user') {
-      const lastUserMessage = messages[messages.length - 1].content;
-      
+    const lastMessage = messages[messages.length - 1];
+    
+    // Reagujemy tylko na wiadomości od użytkownika
+    if (lastMessage?.type === 'user') {
       // Aktualizujemy odpowiedzi
       setUserAnswers(prev => ({
         ...prev,
-        answers: [...prev.answers, lastUserMessage]
+        answers: [...prev.answers, lastMessage.content]
       }));
 
       // Sprawdzamy, czy mamy jeszcze pytania do zadania
       if (currentQuestion < questions.length) {
         // Zadajemy następne pytanie po krótkiej przerwie
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           setMessages(prev => [...prev, { type: 'agent', content: questions[currentQuestion] }]);
           setCurrentQuestion(prev => prev + 1);
         }, 1000);
+        
+        // Czyścimy timer przy odmontowaniu
+        return () => clearTimeout(timer);
       }
     }
-  }, [messages, currentQuestion, questions]);
+  }, [messages.length]); // Reagujemy tylko na zmianę długości messages
 
   // Osobny useEffect do monitorowania liczby odpowiedzi
   useEffect(() => {
+    // Sprawdzamy czy mamy wszystkie odpowiedzi
     if (userAnswers.answers.length === questions.length) {
       console.log('Zebrano wszystkie odpowiedzi:', userAnswers);
       sendToN8N();
     }
-  }, [userAnswers.answers.length, questions.length]);
+  }, [userAnswers.answers.length]);
 
   const sendToN8N = async () => {
     setIsLoading(true);
