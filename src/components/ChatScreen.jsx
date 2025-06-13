@@ -51,14 +51,12 @@ export function ChatScreen({ businessIdea, onBack }) {
     setIsGenerating(true);
     try {
       console.log('Sending data:', userAnswers);
-      const response = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
+      const response = await fetch('/api/presentation', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Origin': window.location.origin
+          'Accept': 'application/json'
         },
-        mode: 'cors',
         body: JSON.stringify({
           businessIdea: userAnswers.businessIdea,
           targetAudience: userAnswers.answers[0],
@@ -71,6 +69,13 @@ export function ChatScreen({ businessIdea, onBack }) {
         throw new Error('Nie udało się wysłać danych do przetworzenia.');
       }
 
+      const responseData = await response.json();
+      const presentationId = responseData.presentationId;
+
+      if (!presentationId) {
+        throw new Error('Nie otrzymano ID prezentacji.');
+      }
+
       // Start polling for status
       let retries = 0;
       const maxRetries = 60; // 5 minut (5s * 60)
@@ -78,17 +83,21 @@ export function ChatScreen({ businessIdea, onBack }) {
 
       const pollStatus = async () => {
         if (retries >= maxRetries) {
-          throw new Error('Przekroczono limit czasu oczekiwania na prezentację.');
+          setIsGenerating(false);
+          setIsLoading(false);
+          setMessages(prev => [...prev, {
+            type: 'agent',
+            content: "Przekroczono limit czasu oczekiwania na prezentację. Spróbuj ponownie później."
+          }]);
+          return;
         }
 
         try {
-          const statusResponse = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274/status', {
+          const statusResponse = await fetch(`/api/presentation?id=${presentationId}`, {
             method: 'GET',
             headers: {
-              'Accept': 'application/json',
-              'Origin': window.location.origin
-            },
-            mode: 'cors'
+              'Accept': 'application/json'
+            }
           });
 
           if (!statusResponse.ok) {
@@ -102,7 +111,12 @@ export function ChatScreen({ businessIdea, onBack }) {
             setDocumentUrl(statusData.documentUrl);
             setShowSuccess(true);
             setIsGenerating(false);
+            setIsLoading(false);
             return;
+          }
+
+          if (statusData.status === 'error') {
+            throw new Error(statusData.error || 'Wystąpił błąd podczas generowania prezentacji.');
           }
 
           // Continue polling
@@ -114,7 +128,12 @@ export function ChatScreen({ businessIdea, onBack }) {
             // If it's just a temporary error, continue polling
             setTimeout(pollStatus, pollInterval);
           } else {
-            throw error;
+            setIsGenerating(false);
+            setIsLoading(false);
+            setMessages(prev => [...prev, {
+              type: 'agent',
+              content: error.message || "Wystąpił błąd podczas sprawdzania statusu prezentacji."
+            }]);
           }
         }
       };
@@ -129,7 +148,6 @@ export function ChatScreen({ businessIdea, onBack }) {
         content: error.message || "Przepraszam, wystąpił błąd podczas przetwarzania danych. Spróbuj ponownie później."
       }]);
       setIsGenerating(false);
-    } finally {
       setIsLoading(false);
     }
   };
