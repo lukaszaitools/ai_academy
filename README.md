@@ -2,7 +2,7 @@
 
 Aplikacja webowa stworzona w React do generowania prezentacji biznesowych przy użyciu n8n.
 
-🌐 **[Zobacz aplikację na żywo](https://week4-aicourse.vercel.app/)**
+🌐 **[Zobacz aplikację na żywo](https://ai-academy-vert.vercel.app/)**
 
 ## Funkcjonalności
 
@@ -28,7 +28,7 @@ Aplikacja webowa stworzona w React do generowania prezentacji biznesowych przy u
 
 1. Sklonuj repozytorium:
 ```bash
-git clone https://github.com/lukaszaitools/week4-aicourse.git
+git clone https://github.com/lukaszaitools/ai_academy.git
 ```
 
 2. Zainstaluj zależności:
@@ -72,7 +72,7 @@ npm run dev
 1. Dodaj node "HTTP Request" w n8n
 2. Skonfiguruj parametry:
    - Metoda: POST
-   - URL: `https://week4-aicourse.vercel.app/api/presentation`
+   - URL: `https://ai-academy-vert.vercel.app/api/presentation`
    - Headers:
      ```json
      {
@@ -117,7 +117,7 @@ src/
 ## Wdrożenie
 
 Aplikacja jest automatycznie wdrażana na Vercel przy każdym push'u do głównej gałęzi repozytorium.
-- Produkcyjna wersja: [https://week4-aicourse.vercel.app/](https://week4-aicourse.vercel.app/)
+- Produkcyjna wersja: [https://ai-academy-vert.vercel.app/](https://ai-academy-vert.vercel.app/)
 
 ## Licencja
 
