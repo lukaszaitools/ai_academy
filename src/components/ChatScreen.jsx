@@ -30,6 +30,14 @@ export function ChatScreen({ businessIdea, onBack }) {
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     
+    // Dodajemy więcej logów do debugowania
+    console.log('Stan aplikacji:', {
+      lastMessage,
+      currentQuestion,
+      questionsLength: questions.length,
+      answersLength: userAnswers.answers.length
+    });
+    
     // Reagujemy tylko na wiadomości od użytkownika
     if (lastMessage?.type === 'user') {
       // Aktualizujemy odpowiedzi
@@ -50,25 +58,47 @@ export function ChatScreen({ businessIdea, onBack }) {
         return () => clearTimeout(timer);
       }
     }
-  }, [messages.length]); // Reagujemy tylko na zmianę długości messages
+  }, [messages.length, currentQuestion, questions]);
 
   // Osobny useEffect do monitorowania liczby odpowiedzi
   useEffect(() => {
-    // Sprawdzamy czy mamy wszystkie odpowiedzi
-    if (userAnswers.answers.length === questions.length) {
+    // Dodajemy więcej logów do debugowania
+    console.log('Sprawdzanie odpowiedzi:', {
+      answersLength: userAnswers.answers.length,
+      questionsLength: questions.length,
+      answers: userAnswers.answers,
+      currentQuestion
+    });
+
+    // Wysyłamy do n8n tylko gdy mamy wszystkie odpowiedzi I zadaliśmy wszystkie pytania
+    if (userAnswers.answers.length === questions.length && currentQuestion === questions.length) {
       console.log('Zebrano wszystkie odpowiedzi:', userAnswers);
       sendToN8N();
     }
-  }, [userAnswers.answers.length]);
+  }, [userAnswers.answers.length, currentQuestion, questions.length]);
 
   const sendToN8N = async () => {
+    // Dodatkowe zabezpieczenie przed wielokrotnym wysłaniem
+    if (isGenerating || isLoading) {
+      console.log('Już trwa generowanie/ładowanie, pomijam wysyłanie');
+      return;
+    }
+
     setIsLoading(true);
     setIsGenerating(true);
     try {
       // Sprawdzamy czy mamy wszystkie potrzebne dane
-      console.log('Current userAnswers:', userAnswers);
-      if (!userAnswers || !userAnswers.businessIdea || !userAnswers.answers || userAnswers.answers.length < questions.length) {
-        throw new Error(`Brak wszystkich wymaganych odpowiedzi. Mamy ${userAnswers.answers.length} z ${questions.length} odpowiedzi.`);
+      console.log('Próba wysłania do n8n:', {
+        businessIdea: userAnswers.businessIdea,
+        answersLength: userAnswers.answers.length,
+        requiredAnswers: questions.length,
+        answers: userAnswers.answers,
+        currentQuestion
+      });
+
+      if (!userAnswers || !userAnswers.businessIdea || !userAnswers.answers || 
+          userAnswers.answers.length < questions.length || currentQuestion < questions.length) {
+        throw new Error(`Brak wszystkich wymaganych odpowiedzi. Mamy ${userAnswers.answers.length} z ${questions.length} odpowiedzi, a zadano ${currentQuestion} z ${questions.length} pytań.`);
       }
 
       const requestData = {
@@ -78,7 +108,7 @@ export function ChatScreen({ businessIdea, onBack }) {
         revenueStreams: userAnswers.answers[2]
       };
       
-      console.log('Preparing to send data to n8n:', requestData);
+      console.log('Wysyłanie danych do n8n:', requestData);
       
       const response = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
         method: 'POST',
