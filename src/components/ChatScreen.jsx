@@ -17,7 +17,7 @@ export function ChatScreen({ businessIdea, onBack }) {
     }
   ]);
   const [userInput, setUserInput] = useState('');
-  const [currentQuestion, setCurrentQuestion] = useState(1);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
   const [userAnswers, setUserAnswers] = useState({
     businessIdea: businessIdea,
     answers: []
@@ -27,40 +27,35 @@ export function ChatScreen({ businessIdea, onBack }) {
   const [documentUrl, setDocumentUrl] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-    
+  const handleUserResponse = (userResponse) => {
     // Dodajemy więcej logów do debugowania
-    console.log('Stan aplikacji:', {
-      lastMessage,
+    console.log('Przetwarzanie odpowiedzi użytkownika:', {
       currentQuestion,
       questionsLength: questions.length,
-      answersLength: userAnswers.answers.length
+      answersLength: userAnswers.answers.length,
+      userResponse
     });
+
+    // Dodaj odpowiedź użytkownika do messages
+    setMessages(prev => [...prev, { type: 'user', content: userResponse }]);
     
-    // Reagujemy tylko na wiadomości od użytkownika
-    if (lastMessage?.type === 'user') {
-      // Aktualizujemy odpowiedzi
-      setUserAnswers(prev => ({
-        ...prev,
-        answers: [...prev.answers, lastMessage.content]
-      }));
+    // Aktualizuj odpowiedzi użytkownika
+    setUserAnswers(prev => ({
+      ...prev,
+      answers: [...prev.answers, userResponse]
+    }));
 
-      // Sprawdzamy, czy mamy jeszcze pytania do zadania
-      if (currentQuestion < questions.length) {
-        // Zadajemy następne pytanie po krótkiej przerwie
-        const timer = setTimeout(() => {
-          setMessages(prev => [...prev, { type: 'agent', content: questions[currentQuestion] }]);
-          setCurrentQuestion(prev => prev + 1);
-        }, 1000);
-        
-        // Czyścimy timer przy odmontowaniu
-        return () => clearTimeout(timer);
-      }
+    // Jeśli to nie było ostatnie pytanie, zadaj następne
+    if (currentQuestion < questions.length - 1) {
+      const nextQuestion = currentQuestion + 1;
+      setTimeout(() => {
+        setMessages(prev => [...prev, { type: 'agent', content: questions[nextQuestion] }]);
+        setCurrentQuestion(nextQuestion);
+      }, 1000);
     }
-  }, [messages.length, currentQuestion, questions]);
+  };
 
-  // Osobny useEffect do monitorowania liczby odpowiedzi
+  // Osobny useEffect do monitorowania liczby odpowiedzi i wysyłania do n8n
   useEffect(() => {
     // Dodajemy więcej logów do debugowania
     console.log('Sprawdzanie odpowiedzi:', {
@@ -70,12 +65,11 @@ export function ChatScreen({ businessIdea, onBack }) {
       currentQuestion
     });
 
-    // Wysyłamy do n8n tylko gdy mamy wszystkie odpowiedzi I zadaliśmy wszystkie pytania
-    if (userAnswers.answers.length === questions.length && currentQuestion === questions.length) {
+    if (userAnswers.answers.length === questions.length) {
       console.log('Zebrano wszystkie odpowiedzi:', userAnswers);
       sendToN8N();
     }
-  }, [userAnswers.answers.length, currentQuestion, questions.length]);
+  }, [userAnswers.answers.length]);
 
   const sendToN8N = async () => {
     // Dodatkowe zabezpieczenie przed wielokrotnym wysłaniem
@@ -96,9 +90,8 @@ export function ChatScreen({ businessIdea, onBack }) {
         currentQuestion
       });
 
-      if (!userAnswers || !userAnswers.businessIdea || !userAnswers.answers || 
-          userAnswers.answers.length < questions.length || currentQuestion < questions.length) {
-        throw new Error(`Brak wszystkich wymaganych odpowiedzi. Mamy ${userAnswers.answers.length} z ${questions.length} odpowiedzi, a zadano ${currentQuestion} z ${questions.length} pytań.`);
+      if (!userAnswers || !userAnswers.businessIdea || !userAnswers.answers || userAnswers.answers.length < questions.length) {
+        throw new Error(`Brak wszystkich wymaganych odpowiedzi. Mamy ${userAnswers.answers.length} z ${questions.length} odpowiedzi.`);
       }
 
       const requestData = {
@@ -131,7 +124,6 @@ export function ChatScreen({ businessIdea, onBack }) {
         throw new Error(`Błąd podczas przetwarzania: ${response.status} ${JSON.stringify(responseData)}`);
       }
 
-      // Sprawdzamy czy mamy URL dokumentu w odpowiedzi
       if (responseData.documentUrl) {
         console.log('Got document URL:', responseData.documentUrl);
         setDocumentUrl(responseData.documentUrl);
@@ -159,7 +151,7 @@ export function ChatScreen({ businessIdea, onBack }) {
     e.preventDefault();
     if (!userInput.trim() || isLoading) return;
     
-    setMessages(prev => [...prev, { type: 'user', content: userInput }]);
+    handleUserResponse(userInput.trim());
     setUserInput('');
   };
 
