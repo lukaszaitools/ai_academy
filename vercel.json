@@ -2,24 +2,8 @@
   "version": 2,
   "routes": [
     {
-      "src": "/api/webhook",
-      "methods": ["POST", "OPTIONS"],
-      "dest": "/api/webhook.js",
-      "headers": {
-        "Access-Control-Allow-Origin": "https://ai-academy-vert.vercel.app",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type"
-      }
-    },
-    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "functions": {
-    "api/webhook.js": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  }
+  ]
 } 
