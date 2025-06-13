@@ -52,12 +52,12 @@ npm run dev
 
 ## Konfiguracja n8n
 
-Aby skonfigurować integrację z n8n:
+### Konfiguracja Webhooka (odbieranie danych)
 
 1. Upewnij się, że masz działający webhook w n8n
 2. Webhook URL: `https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274`
 3. Metoda: POST
-4. Format danych:
+4. Format danych wejściowych:
 ```json
 {
   "businessIdea": "string",
@@ -66,6 +66,38 @@ Aby skonfigurować integrację z n8n:
   "revenueStreams": "string"
 }
 ```
+
+### Konfiguracja HTTP Request (wysyłanie danych do aplikacji)
+
+1. Dodaj node "HTTP Request" w n8n
+2. Skonfiguruj parametry:
+   - Metoda: POST
+   - URL: `https://week4-aicourse.vercel.app/api/presentation`
+   - Headers:
+     ```json
+     {
+       "Content-Type": "application/json"
+     }
+     ```
+   - Body (przykład):
+     ```json
+     {
+       "status": "completed",
+       "presentationUrl": "https://example.com/presentation.pdf",
+       "message": "Prezentacja została wygenerowana pomyślnie"
+     }
+     ```
+   lub w przypadku błędu:
+     ```json
+     {
+       "status": "error",
+       "message": "Wystąpił błąd podczas generowania prezentacji"
+     }
+     ```
+
+3. Response handling:
+   - Success: Status 200
+   - Error: Status 400-500
 
 ## Struktura projektu
 
