@@ -40,11 +40,11 @@ export function ChatScreen({ businessIdea, onBack }) {
           setMessages(prev => [...prev, { type: 'agent', content: questions[currentQuestion] }]);
           setCurrentQuestion(prev => prev + 1);
         }, 1000);
-      } else if (currentQuestion === questions.length) {
+      } else if (currentQuestion === questions.length && userAnswers.answers.length === questions.length) {
         sendToN8N();
       }
     }
-  }, [messages]);
+  }, [messages, currentQuestion, questions.length, userAnswers.answers.length]);
 
   const sendToN8N = async () => {
     setIsLoading(true);
