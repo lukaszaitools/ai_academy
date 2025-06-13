@@ -97,10 +97,11 @@ export function ChatScreen({ businessIdea, onBack }) {
         }
 
         try {
-          const pollResponse = await fetch('/api/status', {
+          const pollResponse = await fetch('https://cors-anywhere.herokuapp.com/https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274/status', {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
+              'Origin': 'https://ai-academy-vert.vercel.app'
             }
           });
 
