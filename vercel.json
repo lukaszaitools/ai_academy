@@ -4,41 +4,22 @@
     {
       "src": "/api/webhook",
       "methods": ["POST", "OPTIONS"],
-      "dest": "/api/webhook.js"
+      "dest": "/api/webhook.js",
+      "headers": {
+        "Access-Control-Allow-Origin": "https://ai-academy-vert.vercel.app",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+      }
     },
     {
-      "src": "/api/presentation",
-      "methods": ["POST", "OPTIONS"],
-      "dest": "/api/presentation.js"
-    },
-    {
-      "src": "/api/status",
-      "methods": ["GET", "OPTIONS"],
-      "dest": "/api/status.js"
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ],
   "functions": {
     "api/webhook.js": {
       "memory": 1024,
       "maxDuration": 10
-    },
-    "api/presentation.js": {
-      "memory": 1024,
-      "maxDuration": 10
-    },
-    "api/status.js": {
-      "memory": 1024,
-      "maxDuration": 10
     }
-  },
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  }
 } 
