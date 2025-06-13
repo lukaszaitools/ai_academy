@@ -20,16 +20,27 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Validate request body
-    if (!req.body || typeof req.body !== 'object') {
-      return res.status(400).json({ error: 'Invalid request body' });
+    // Get the content from the request body, handling different possible formats
+    let content;
+    
+    if (typeof req.body === 'string') {
+      // If body is a string, try to parse it as JSON
+      try {
+        const parsedBody = JSON.parse(req.body);
+        content = parsedBody.content || parsedBody.message || parsedBody;
+      } catch (e) {
+        content = req.body;
+      }
+    } else if (typeof req.body === 'object') {
+      // If body is an object, try to get content from various possible fields
+      content = req.body.content || req.body.message || req.body.output || JSON.stringify(req.body);
+    } else {
+      content = String(req.body);
     }
 
-    // Extract content from request body
-    const { content } = req.body;
-
-    if (!content) {
-      return res.status(400).json({ error: 'Content is required' });
+    // Ensure content is a string
+    if (typeof content !== 'string') {
+      content = JSON.stringify(content);
     }
 
     // Forward to n8n webhook with proper formatting
@@ -39,7 +50,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        content: content,
+        message: content,
         timestamp: new Date().toISOString()
       }),
     });
@@ -48,6 +59,6 @@ export default async function handler(req, res) {
     return res.status(200).json(data);
   } catch (error) {
     console.error('Error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 } 
