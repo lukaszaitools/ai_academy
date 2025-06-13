@@ -30,21 +30,31 @@ export function ChatScreen({ businessIdea, onBack }) {
   useEffect(() => {
     if (messages.length > 0 && messages[messages.length - 1].type === 'user') {
       const lastUserMessage = messages[messages.length - 1].content;
+      
+      // Aktualizujemy odpowiedzi
       setUserAnswers(prev => ({
         ...prev,
         answers: [...prev.answers, lastUserMessage]
       }));
 
+      // Sprawdzamy, czy mamy jeszcze pytania do zadania
       if (currentQuestion < questions.length) {
+        // Zadajemy następne pytanie po krótkiej przerwie
         setTimeout(() => {
           setMessages(prev => [...prev, { type: 'agent', content: questions[currentQuestion] }]);
           setCurrentQuestion(prev => prev + 1);
         }, 1000);
-      } else if (currentQuestion === questions.length && userAnswers.answers.length === questions.length) {
-        sendToN8N();
       }
     }
-  }, [messages, currentQuestion, questions.length, userAnswers.answers.length]);
+  }, [messages, currentQuestion, questions]);
+
+  // Osobny useEffect do monitorowania liczby odpowiedzi
+  useEffect(() => {
+    if (userAnswers.answers.length === questions.length) {
+      console.log('Zebrano wszystkie odpowiedzi:', userAnswers);
+      sendToN8N();
+    }
+  }, [userAnswers.answers.length, questions.length]);
 
   const sendToN8N = async () => {
     setIsLoading(true);
@@ -52,8 +62,8 @@ export function ChatScreen({ businessIdea, onBack }) {
     try {
       // Sprawdzamy czy mamy wszystkie potrzebne dane
       console.log('Current userAnswers:', userAnswers);
-      if (!userAnswers || !userAnswers.businessIdea || !userAnswers.answers || userAnswers.answers.length < 3) {
-        throw new Error('Brak wszystkich wymaganych odpowiedzi. Potrzebujemy pomysłu na biznes i trzech odpowiedzi.');
+      if (!userAnswers || !userAnswers.businessIdea || !userAnswers.answers || userAnswers.answers.length < questions.length) {
+        throw new Error(`Brak wszystkich wymaganych odpowiedzi. Mamy ${userAnswers.answers.length} z ${questions.length} odpowiedzi.`);
       }
 
       const requestData = {
