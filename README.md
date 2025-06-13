@@ -79,12 +79,11 @@ npm run dev
        "Content-Type": "application/json"
      }
      ```
-   - Body (przykład):
+   - Body:
      ```json
      {
        "status": "completed",
-       "presentationUrl": "https://example.com/presentation.pdf",
-       "message": "Prezentacja została wygenerowana pomyślnie"
+       "content": "{{$node["AI_Agent"].json["output"]}}",
      }
      ```
    lub w przypadku błędu:
