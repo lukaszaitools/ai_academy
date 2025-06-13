@@ -25,19 +25,50 @@ export default async function handler(req, res) {
     console.log('Request headers:', req.headers);
     console.log('Request body:', req.body);
 
-    // Validate request body
-    if (!req.body || !req.body.documentUrl) {
+    // Get document URL or ID
+    let documentUrl = '';
+    
+    if (!req.body) {
       return res.status(400).json({ 
         error: 'Invalid request', 
-        message: 'Request body must contain documentUrl field',
+        message: 'Request body is required',
         receivedBody: req.body 
       });
     }
 
-    // Extract document URL
-    const { documentUrl } = req.body;
+    // Handle different possible formats of the document URL/ID
+    if (req.body.documentUrl) {
+      documentUrl = req.body.documentUrl;
+    } else if (req.body.documentId) {
+      documentUrl = `https://docs.google.com/document/d/${req.body.documentId}/edit`;
+    } else if (typeof req.body === 'string') {
+      // Check if it's a full URL or just an ID
+      if (req.body.startsWith('http')) {
+        documentUrl = req.body;
+      } else {
+        documentUrl = `https://docs.google.com/document/d/${req.body}/edit`;
+      }
+    } else {
+      return res.status(400).json({ 
+        error: 'Invalid request', 
+        message: 'Request must contain documentUrl, documentId, or a string with the document ID/URL',
+        receivedBody: req.body 
+      });
+    }
 
-    // Forward to n8n webhook with the document URL
+    // Ensure the URL is properly formatted
+    if (!documentUrl.startsWith('https://docs.google.com/')) {
+      documentUrl = `https://docs.google.com/document/d/${documentUrl}/edit`;
+    }
+
+    // Ensure the URL ends with /edit
+    if (!documentUrl.endsWith('/edit')) {
+      documentUrl = documentUrl + (documentUrl.endsWith('/') ? 'edit' : '/edit');
+    }
+
+    console.log('Processed document URL:', documentUrl);
+
+    // Forward to n8n webhook
     const response = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
       method: 'POST',
       headers: {
