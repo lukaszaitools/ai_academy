@@ -20,60 +20,50 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Log raw request details
+    // Log request details
     console.log('Request method:', req.method);
     console.log('Request headers:', req.headers);
-    console.log('Content type:', req.headers['content-type']);
-    console.log('Raw body:', req.body);
+    console.log('Request body:', req.body);
 
-    // Get raw body data
-    let content = '';
-
-    // Handle different types of input
-    if (req.body === null || req.body === undefined) {
-      return res.status(400).json({ error: 'Request body is required' });
+    // Validate request body
+    if (!req.body || !req.body.documentUrl) {
+      return res.status(400).json({ 
+        error: 'Invalid request', 
+        message: 'Request body must contain documentUrl field',
+        receivedBody: req.body 
+      });
     }
 
-    // Convert body to string if it's not already
-    if (typeof req.body === 'string') {
-      content = req.body;
-    } else if (typeof req.body === 'object') {
-      // If it's an object, stringify it
-      content = JSON.stringify(req.body);
-    } else {
-      content = String(req.body);
-    }
+    // Extract document URL
+    const { documentUrl } = req.body;
 
-    console.log('Processed content:', content);
-
-    // Forward to n8n webhook
-    const webhookBody = {
-      content: content,
-      timestamp: new Date().toISOString()
-    };
-
-    console.log('Sending to webhook:', webhookBody);
-
+    // Forward to n8n webhook with the document URL
     const response = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(webhookBody),
+      body: JSON.stringify({
+        documentUrl,
+        timestamp: new Date().toISOString()
+      }),
     });
 
     const data = await response.json();
     console.log('n8n response:', data);
     
-    return res.status(200).json(data);
+    // Return success with the document URL
+    return res.status(200).json({
+      success: true,
+      documentUrl,
+      message: 'Document URL received successfully'
+    });
   } catch (error) {
     console.error('Error processing request:', error);
     return res.status(500).json({ 
       error: 'Internal server error', 
       details: error.message,
-      stack: error.stack,
-      headers: req.headers,
-      body: req.body
+      stack: error.stack
     });
   }
 } 
