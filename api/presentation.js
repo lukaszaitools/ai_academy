@@ -28,7 +28,7 @@ export default async function handler(req) {
         });
       }
 
-      return new Response(JSON.stringify({ success: true }), {
+      return new Response(JSON.stringify({ documentUrl: data.documentUrl }), {
         status: 200,
         headers: {
           'Content-Type': 'application/json',

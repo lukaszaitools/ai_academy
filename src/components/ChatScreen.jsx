@@ -50,41 +50,101 @@ export function ChatScreen({ businessIdea, onBack }) {
     setIsLoading(true);
     setIsGenerating(true);
     try {
-      console.log('Sending data:', userAnswers);
+      // Sprawdzamy czy mamy wszystkie potrzebne dane
+      console.log('Current userAnswers:', userAnswers);
+      if (!userAnswers || !userAnswers.businessIdea || !userAnswers.answers) {
+        throw new Error('Brak wymaganych danych do wysłania.');
+      }
+
+      const requestData = {
+        businessIdea: userAnswers.businessIdea,
+        targetAudience: userAnswers.answers[0],
+        valueProposition: userAnswers.answers[1],
+        revenueStreams: userAnswers.answers[2]
+      };
+      
+      console.log('Preparing to send data to n8n:', requestData);
+      
       const response = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          businessIdea: userAnswers.businessIdea,
-          targetAudience: userAnswers.answers[0],
-          valueProposition: userAnswers.answers[1],
-          revenueStreams: userAnswers.answers[2]
-        })
+        body: JSON.stringify(requestData)
       });
 
+      console.log('Got initial response from n8n:', {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText
+      });
+
+      const responseText = await response.text();
+      console.log('Initial response text:', responseText);
+
       if (!response.ok) {
-        throw new Error('Nie udało się wysłać danych do przetworzenia.');
+        throw new Error(`Błąd podczas przetwarzania: ${response.status} ${responseText}`);
       }
 
-      const data = await response.json();
-      console.log('Response from n8n:', data);
+      // Czekamy na faktyczne zakończenie workflow i URL dokumentu
+      let retries = 0;
+      const maxRetries = 60; // 5 minut (5s * 60)
+      const pollInterval = 5000; // 5 sekund
 
-      if (!data || !data.documentUrl) {
-        throw new Error('Nie otrzymano poprawnej odpowiedzi z URL dokumentu.');
-      }
+      const pollForResult = async () => {
+        if (retries >= maxRetries) {
+          throw new Error('Przekroczono limit czasu oczekiwania na dokument.');
+        }
 
-      setDocumentUrl(data.documentUrl);
-      setShowSuccess(true);
+        try {
+          const pollResponse = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274/status', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+
+          if (!pollResponse.ok) {
+            throw new Error('Błąd podczas sprawdzania statusu.');
+          }
+
+          const pollData = await pollResponse.json();
+          console.log('Poll response:', pollData);
+
+          if (pollData.documentUrl) {
+            console.log('Got document URL:', pollData.documentUrl);
+            setDocumentUrl(pollData.documentUrl);
+            setShowSuccess(true);
+            return;
+          }
+
+          // Jeśli nie ma jeszcze URL, czekamy i próbujemy ponownie
+          retries++;
+          setTimeout(pollForResult, pollInterval);
+        } catch (error) {
+          console.error('Error during polling:', error);
+          if (retries < maxRetries) {
+            // Jeśli to tylko tymczasowy błąd, próbujemy dalej
+            setTimeout(pollForResult, pollInterval);
+          } else {
+            throw error;
+          }
+        }
+      };
+
+      // Rozpoczynamy sprawdzanie statusu
+      setTimeout(pollForResult, 2000);
 
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Full error details:', {
+        message: error.message,
+        stack: error.stack,
+        error
+      });
       setMessages(prev => [...prev, {
         type: 'agent',
         content: error.message || "Przepraszam, wystąpił błąd podczas przetwarzania danych. Spróbuj ponownie później."
       }]);
-    } finally {
       setIsGenerating(false);
       setIsLoading(false);
     }
