@@ -14,81 +14,59 @@ export default async function handler(req, res) {
     return;
   }
 
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
     // Log request details
     console.log('Request method:', req.method);
     console.log('Request headers:', req.headers);
     console.log('Request body:', req.body);
 
-    // Get document URL or ID
-    let documentUrl = '';
-    
-    if (!req.body) {
-      return res.status(400).json({ 
-        error: 'Invalid request', 
-        message: 'Request body is required',
-        receivedBody: req.body 
+    // Handle initial request from frontend
+    if (req.method === 'POST' && req.body.businessIdea) {
+      console.log('Received initial request with business data');
+      
+      // Forward to n8n webhook
+      const response = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(req.body),
       });
-    }
 
-    // Handle different possible formats of the document URL/ID
-    if (req.body.documentUrl) {
-      documentUrl = req.body.documentUrl;
-    } else if (req.body.documentId) {
-      documentUrl = `https://docs.google.com/document/d/${req.body.documentId}/edit`;
-    } else if (typeof req.body === 'string') {
-      // Check if it's a full URL or just an ID
-      if (req.body.startsWith('http')) {
-        documentUrl = req.body;
-      } else {
-        documentUrl = `https://docs.google.com/document/d/${req.body}/edit`;
+      if (!response.ok) {
+        throw new Error('Failed to send data to n8n');
       }
-    } else {
-      return res.status(400).json({ 
-        error: 'Invalid request', 
-        message: 'Request must contain documentUrl, documentId, or a string with the document ID/URL',
-        receivedBody: req.body 
+
+      // Return accepted status to indicate processing started
+      return res.status(202).json({
+        status: 'processing',
+        message: 'Your request is being processed'
       });
     }
 
-    // Ensure the URL is properly formatted
-    if (!documentUrl.startsWith('https://docs.google.com/')) {
-      documentUrl = `https://docs.google.com/document/d/${documentUrl}/edit`;
+    // Handle document URL update from n8n
+    if (req.method === 'POST' && req.body.documentUrl) {
+      console.log('Received document URL from n8n:', req.body.documentUrl);
+      
+      // Store the URL in some temporary storage or database
+      // For now, we'll just return it immediately
+      return res.status(200).json({
+        status: 'completed',
+        documentUrl: req.body.documentUrl
+      });
     }
 
-    // Ensure the URL ends with /edit
-    if (!documentUrl.endsWith('/edit')) {
-      documentUrl = documentUrl + (documentUrl.endsWith('/') ? 'edit' : '/edit');
+    // Handle status check request
+    if (req.method === 'GET') {
+      // Here you would typically check your storage/database for the document URL
+      // For now, we'll just return processing status
+      return res.status(200).json({
+        status: 'processing',
+        message: 'Still processing your request'
+      });
     }
 
-    console.log('Processed document URL:', documentUrl);
-
-    // Forward to n8n webhook
-    const response = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        documentUrl,
-        timestamp: new Date().toISOString()
-      }),
-    });
-
-    const data = await response.json();
-    console.log('n8n response:', data);
-    
-    // Return success with the document URL
-    return res.status(200).json({
-      success: true,
-      documentUrl,
-      message: 'Document URL received successfully'
-    });
+    return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('Error processing request:', error);
     return res.status(500).json({ 

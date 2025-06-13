@@ -67,68 +67,60 @@ export function ChatScreen({ businessIdea, onBack }) {
         })
       });
 
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
-      
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (e) {
-        responseData = { message: responseText };
-      }
-      console.log('Parsed response:', responseData);
-
       if (!response.ok) {
-        throw new Error(`Błąd serwera: ${responseData.message || 'Nieznany błąd'}`);
+        throw new Error('Nie udało się wysłać danych do przetworzenia.');
       }
 
-      // Sprawdzamy URL dokumentu
-      if (responseData.documentUrl) {
-        setDocumentUrl(responseData.documentUrl);
-        setShowSuccess(true);
-      } else {
-        // Jeśli nie ma URL-a, czekamy na niego
-        let retries = 0;
-        const maxRetries = 60; // maksymalnie 60 prób (5 minut)
-        const checkInterval = 5000; // co 5 sekund
+      // Start polling for status
+      let retries = 0;
+      const maxRetries = 60; // 5 minut (5s * 60)
+      const pollInterval = 5000; // 5 sekund
 
-        const checkStatus = async () => {
-          if (retries >= maxRetries) {
-            throw new Error('Przekroczono limit czasu oczekiwania na prezentację.');
+      const pollStatus = async () => {
+        if (retries >= maxRetries) {
+          throw new Error('Przekroczono limit czasu oczekiwania na prezentację.');
+        }
+
+        try {
+          const statusResponse = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274/status', {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Origin': window.location.origin
+            },
+            mode: 'cors'
+          });
+
+          if (!statusResponse.ok) {
+            throw new Error('Nie można sprawdzić statusu generowania prezentacji.');
           }
 
-          try {
-            const statusResponse = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274/status', {
-              method: 'GET',
-              headers: {
-                'Accept': 'application/json',
-                'Origin': window.location.origin
-              },
-              mode: 'cors'
-            });
+          const statusData = await statusResponse.json();
+          console.log('Status response:', statusData);
 
-            if (!statusResponse.ok) {
-              throw new Error('Nie można sprawdzić statusu generowania prezentacji.');
-            }
+          if (statusData.status === 'completed' && statusData.documentUrl) {
+            setDocumentUrl(statusData.documentUrl);
+            setShowSuccess(true);
+            setIsGenerating(false);
+            return;
+          }
 
-            const statusData = await statusResponse.json();
-            
-            if (statusData.documentUrl) {
-              setDocumentUrl(statusData.documentUrl);
-              setShowSuccess(true);
-              return;
-            }
-
-            retries++;
-            setTimeout(checkStatus, checkInterval);
-          } catch (error) {
-            console.error('Error checking status:', error);
+          // Continue polling
+          retries++;
+          setTimeout(pollStatus, pollInterval);
+        } catch (error) {
+          console.error('Error polling status:', error);
+          if (retries < maxRetries) {
+            // If it's just a temporary error, continue polling
+            setTimeout(pollStatus, pollInterval);
+          } else {
             throw error;
           }
-        };
+        }
+      };
 
-        await checkStatus();
-      }
+      // Start polling after a short delay
+      setTimeout(pollStatus, 2000);
 
     } catch (error) {
       console.error('Error:', error);
