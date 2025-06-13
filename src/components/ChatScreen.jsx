@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Send, Bot } from 'lucide-react';
 import { LoadingScreen } from './LoadingScreen';
+import { SuccessScreen } from './SuccessScreen';
 
 export function ChatScreen({ businessIdea, onBack }) {
   const questions = [
@@ -23,7 +24,8 @@ export function ChatScreen({ businessIdea, onBack }) {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [presentationUrl, setPresentationUrl] = useState(null);
+  const [documentUrl, setDocumentUrl] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     if (messages.length > 0 && messages[messages.length - 1].type === 'user') {
@@ -77,56 +79,55 @@ export function ChatScreen({ businessIdea, onBack }) {
       console.log('Parsed response:', responseData);
 
       if (!response.ok) {
-        if (responseData.hint && responseData.hint.includes('test mode')) {
-          throw new Error('Webhook jest w trybie testowym. Proszę aktywować webhook w n8n i spróbować ponownie.');
-        }
         throw new Error(`Błąd serwera: ${responseData.message || 'Nieznany błąd'}`);
       }
 
-      // Czekamy na odpowiedź z n8n
-      let retries = 0;
-      const maxRetries = 60; // maksymalnie 60 prób (5 minut)
-      const checkInterval = 5000; // co 5 sekund
+      // Sprawdzamy URL dokumentu
+      if (responseData.documentUrl) {
+        setDocumentUrl(responseData.documentUrl);
+        setShowSuccess(true);
+      } else {
+        // Jeśli nie ma URL-a, czekamy na niego
+        let retries = 0;
+        const maxRetries = 60; // maksymalnie 60 prób (5 minut)
+        const checkInterval = 5000; // co 5 sekund
 
-      while (retries < maxRetries) {
-        if (responseData.status === 'completed' || responseData.presentationUrl) {
-          // Mamy gotową prezentację
-          setPresentationUrl(responseData.presentationUrl);
-          setMessages(prev => [...prev, {
-            type: 'agent',
-            content: responseData.presentationUrl 
-              ? `Świetnie! Twoja prezentacja jest gotowa. Możesz ją zobaczyć tutaj: ${responseData.presentationUrl}`
-              : "Dziękuję za wszystkie odpowiedzi! Twoje dane zostały przesłane do analizy. Za chwilę otrzymasz gotową prezentację!"
-          }]);
-          break;
-        } else if (responseData.status === 'error') {
-          throw new Error('Wystąpił błąd podczas generowania prezentacji.');
-        }
+        const checkStatus = async () => {
+          if (retries >= maxRetries) {
+            throw new Error('Przekroczono limit czasu oczekiwania na prezentację.');
+          }
 
-        // Czekamy 5 sekund przed kolejnym sprawdzeniem
-        await new Promise(resolve => setTimeout(resolve, checkInterval));
-        
-        // Sprawdzamy status
-        const statusResponse = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274/status', {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Origin': window.location.origin
-          },
-          mode: 'cors'
-        });
+          try {
+            const statusResponse = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274/status', {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'Origin': window.location.origin
+              },
+              mode: 'cors'
+            });
 
-        if (!statusResponse.ok) {
-          throw new Error('Nie można sprawdzić statusu generowania prezentacji.');
-        }
+            if (!statusResponse.ok) {
+              throw new Error('Nie można sprawdzić statusu generowania prezentacji.');
+            }
 
-        const statusData = await statusResponse.json();
-        responseData = statusData;
-        retries++;
-      }
+            const statusData = await statusResponse.json();
+            
+            if (statusData.documentUrl) {
+              setDocumentUrl(statusData.documentUrl);
+              setShowSuccess(true);
+              return;
+            }
 
-      if (retries >= maxRetries) {
-        throw new Error('Przekroczono limit czasu oczekiwania na prezentację.');
+            retries++;
+            setTimeout(checkStatus, checkInterval);
+          } catch (error) {
+            console.error('Error checking status:', error);
+            throw error;
+          }
+        };
+
+        await checkStatus();
       }
 
     } catch (error) {
@@ -135,9 +136,9 @@ export function ChatScreen({ businessIdea, onBack }) {
         type: 'agent',
         content: error.message || "Przepraszam, wystąpił błąd podczas przetwarzania danych. Spróbuj ponownie później."
       }]);
+      setIsGenerating(false);
     } finally {
       setIsLoading(false);
-      setIsGenerating(false);
     }
   };
 
@@ -148,6 +149,10 @@ export function ChatScreen({ businessIdea, onBack }) {
     setMessages(prev => [...prev, { type: 'user', content: userInput }]);
     setUserInput('');
   };
+
+  if (showSuccess && documentUrl) {
+    return <SuccessScreen documentUrl={documentUrl} />;
+  }
 
   if (isGenerating) {
     return <LoadingScreen />;
@@ -183,7 +188,7 @@ export function ChatScreen({ businessIdea, onBack }) {
                   : 'bg-gray-700 text-gray-100 rounded-bl-none'
               }`}
             >
-              {message.content}
+              {typeof message.content === 'string' ? message.content : message.content}
             </div>
           </div>
         ))}

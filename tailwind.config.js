@@ -22,6 +22,16 @@ export default {
           950: '#3b0764',
         },
       },
+      keyframes: {
+        loading: {
+          '0%': { transform: 'translateX(-100%)' },
+          '50%': { transform: 'translateX(100%)' },
+          '100%': { transform: 'translateX(-100%)' }
+        }
+      },
+      animation: {
+        loading: 'loading 2s ease-in-out infinite',
+      }
     },
   },
   plugins: [],
