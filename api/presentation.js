@@ -20,45 +20,73 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get the content from the request body, handling different possible formats
-    let content;
-    
+    console.log('Received request body:', req.body);
+
+    // Handle the input data in the most flexible way possible
+    let messageContent;
+
+    if (req.body === null || req.body === undefined) {
+      return res.status(400).json({ error: 'Request body is required' });
+    }
+
+    // If the body is a string, use it directly
     if (typeof req.body === 'string') {
-      // If body is a string, try to parse it as JSON
-      try {
-        const parsedBody = JSON.parse(req.body);
-        content = parsedBody.content || parsedBody.message || parsedBody;
-      } catch (e) {
-        content = req.body;
+      messageContent = req.body;
+    }
+    // If it's an object, try to extract the content
+    else if (typeof req.body === 'object') {
+      // If it's an array, join it
+      if (Array.isArray(req.body)) {
+        messageContent = req.body.join(' ');
       }
-    } else if (typeof req.body === 'object') {
-      // If body is an object, try to get content from various possible fields
-      content = req.body.content || req.body.message || req.body.output || JSON.stringify(req.body);
-    } else {
-      content = String(req.body);
+      // If it has a data property that's a string, use that
+      else if (typeof req.body.data === 'string') {
+        messageContent = req.body.data;
+      }
+      // If it has any of these properties, use the first one found
+      else {
+        messageContent = req.body.output || req.body.content || req.body.message || req.body.text;
+        
+        // If we still don't have content, stringify the entire body
+        if (messageContent === undefined) {
+          messageContent = JSON.stringify(req.body);
+        }
+      }
+    }
+    // For any other type, convert to string
+    else {
+      messageContent = String(req.body);
     }
 
-    // Ensure content is a string
-    if (typeof content !== 'string') {
-      content = JSON.stringify(content);
+    // Ensure we have some content
+    if (!messageContent) {
+      return res.status(400).json({ error: 'No content could be extracted from the request' });
     }
 
-    // Forward to n8n webhook with proper formatting
+    console.log('Processed message content:', messageContent);
+
+    // Forward to n8n webhook
     const response = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message: content,
+        data: messageContent,
         timestamp: new Date().toISOString()
       }),
     });
 
     const data = await response.json();
+    console.log('n8n response:', data);
+    
     return res.status(200).json(data);
   } catch (error) {
-    console.error('Error:', error);
-    return res.status(500).json({ error: 'Internal server error', details: error.message });
+    console.error('Error processing request:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error', 
+      details: error.message,
+      stack: error.stack 
+    });
   }
 } 
