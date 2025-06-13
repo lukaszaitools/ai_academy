@@ -65,11 +65,10 @@ export function ChatScreen({ businessIdea, onBack }) {
       
       console.log('Preparing to send data to n8n:', requestData);
       
-      const response = await fetch('https://cors-anywhere.herokuapp.com/https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
+      const response = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Origin': 'https://ai-academy-vert.vercel.app'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestData)
       });
@@ -87,6 +86,7 @@ export function ChatScreen({ businessIdea, onBack }) {
         throw new Error(`Błąd podczas przetwarzania: ${response.status} ${JSON.stringify(responseData)}`);
       }
 
+      // Sprawdzamy czy mamy URL dokumentu w odpowiedzi
       if (responseData.documentUrl) {
         console.log('Got document URL:', responseData.documentUrl);
         setDocumentUrl(responseData.documentUrl);
