@@ -7,13 +7,16 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "autoprefixer": "^10.4.21",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "gsap": "^3.13.0",
     "lucide-react": "^0.358.0",
     "postcss": "^8.5.4",
