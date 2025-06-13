@@ -17,5 +17,17 @@
         }
       ]
     }
-  ]
+  ],
+  "rewrites": [
+    {
+      "source": "/api/presentation",
+      "destination": "/src/api/presentation.js"
+    }
+  ],
+  "functions": {
+    "src/api/*.js": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  }
 } 

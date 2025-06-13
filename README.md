@@ -79,22 +79,26 @@ npm run dev
        "Content-Type": "application/json"
      }
      ```
-   - Body:
-     ```json
-     {
-       "status": "completed",
-       "content": "{{$node["AI_Agent"].json["output"]}}",
-     }
-     ```
-   lub w przypadku błędu:
-     ```json
-     {
-       "status": "error",
-       "message": "Wystąpił błąd podczas generowania prezentacji"
-     }
-     ```
 
-3. Response handling:
+3. Skonfiguruj Body (wybierz jeden z dwóch sposobów):
+
+   **Sposób 1 - Expression:**
+   ```javascript
+   {
+     "status": "completed",
+     "content": $json["output"]
+   }
+   ```
+
+   **Sposób 2 - JSON:**
+   ```json
+   {
+     "status": "completed",
+     "content": "={{ $json[\"output\"] }}"
+   }
+   ```
+
+4. Response handling:
    - Success: Status 200
    - Error: Status 400-500
 
