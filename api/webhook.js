@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
-  // Obsługa CORS
+  // Obsługa CORS - używamy * zamiast konkretnego origin dla uproszczenia
   res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', 'https://ai-academy-vert.vercel.app');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -18,8 +18,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Przekazujemy żądanie do n8n
-    const response = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
+    // Używamy produkcyjnego webhooka zamiast testowego
+    const response = await fetch('https://lukai.app.n8n.cloud/webhook/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
