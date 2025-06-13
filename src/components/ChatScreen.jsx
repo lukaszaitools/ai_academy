@@ -65,76 +65,35 @@ export function ChatScreen({ businessIdea, onBack }) {
       
       console.log('Preparing to send data to n8n:', requestData);
       
-      const response = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
+      const response = await fetch('https://cors-anywhere.herokuapp.com/https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Origin': 'https://ai-academy-vert.vercel.app'
         },
         body: JSON.stringify(requestData)
       });
 
-      console.log('Got initial response from n8n:', {
+      console.log('Got response from n8n:', {
         status: response.status,
         ok: response.ok,
         statusText: response.statusText
       });
 
-      const responseText = await response.text();
-      console.log('Initial response text:', responseText);
+      const responseData = await response.json();
+      console.log('Response data:', responseData);
 
       if (!response.ok) {
-        throw new Error(`Błąd podczas przetwarzania: ${response.status} ${responseText}`);
+        throw new Error(`Błąd podczas przetwarzania: ${response.status} ${JSON.stringify(responseData)}`);
       }
 
-      // Czekamy na faktyczne zakończenie workflow i URL dokumentu
-      let retries = 0;
-      const maxRetries = 60; // 5 minut (5s * 60)
-      const pollInterval = 5000; // 5 sekund
-
-      const pollForResult = async () => {
-        if (retries >= maxRetries) {
-          throw new Error('Przekroczono limit czasu oczekiwania na dokument.');
-        }
-
-        try {
-          const pollResponse = await fetch('https://cors-anywhere.herokuapp.com/https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274/status', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Origin': 'https://ai-academy-vert.vercel.app'
-            }
-          });
-
-          if (!pollResponse.ok) {
-            throw new Error('Błąd podczas sprawdzania statusu.');
-          }
-
-          const pollData = await pollResponse.json();
-          console.log('Poll response:', pollData);
-
-          if (pollData.documentUrl) {
-            console.log('Got document URL:', pollData.documentUrl);
-            setDocumentUrl(pollData.documentUrl);
-            setShowSuccess(true);
-            return;
-          }
-
-          // Jeśli nie ma jeszcze URL, czekamy i próbujemy ponownie
-          retries++;
-          setTimeout(pollForResult, pollInterval);
-        } catch (error) {
-          console.error('Error during polling:', error);
-          if (retries < maxRetries) {
-            // Jeśli to tylko tymczasowy błąd, próbujemy dalej
-            setTimeout(pollForResult, pollInterval);
-          } else {
-            throw error;
-          }
-        }
-      };
-
-      // Rozpoczynamy sprawdzanie statusu
-      setTimeout(pollForResult, 2000);
+      if (responseData.documentUrl) {
+        console.log('Got document URL:', responseData.documentUrl);
+        setDocumentUrl(responseData.documentUrl);
+        setShowSuccess(true);
+      } else {
+        throw new Error('Nie otrzymano URL dokumentu w odpowiedzi.');
+      }
 
     } catch (error) {
       console.error('Full error details:', {
