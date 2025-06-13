@@ -103,7 +103,7 @@ export function ChatScreen({ businessIdea, onBack }) {
       
       console.log('Wysyłanie danych do n8n:', requestData);
       
-      const response = await fetch('https://lukai.app.n8n.cloud/webhook-test/a713d6ed-70ed-4eb5-9ff1-1147fe2f4274', {
+      const response = await fetch('/api/webhook', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
